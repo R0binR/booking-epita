@@ -21,7 +21,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run OSV Scanner
-        uses: "google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@3d5827dbebf8a3f7ba681e730a8a1b116e8ebddd" # v2.3.5
+        uses: "google/osv-scanner-action/osv-scanner-action@3d5827dbebf8a3f7ba681e730a8a1b116e8ebddd" 
         with:
           scan-args: |-
             --format sarif
