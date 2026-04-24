@@ -1,45 +1,44 @@
----
 name: security
-
 on:
   workflow_dispatch:
 
 permissions:
-  # Required to upload SARIF file to CodeQL.
   actions: read
-  # Require writing security events to upload SARIF file
   security-events: write
-  # to fetch code (actions/checkout)
   contents: read
 
 jobs:
+  # ✅ Reusable workflow appelé au niveau job, pas dans steps
+  osv-scan:
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.3.4
+    with:
+      scan-args: |-
+        --format sarif
+        --output DependenciesAnalysisFull.sarif
+        ./
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
   dependencies-analysis:
     runs-on: ubuntu-latest
-
+    needs: osv-scan
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Run OSV Scanner
-        uses: "google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.3.4"
+      - name: Download SARIF artifact
+        uses: actions/download-artifact@v4
         with:
-          scan-args: |-
-            --format sarif
-            --output DependenciesAnalysisFull.sarif
-            ./
-        continue-on-error: true
+          name: osv-scanner-results  # nom produit par le reusable workflow OSV
 
       - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: DependenciesAnalysisFull.sarif
 
   source-code-analysis:
     runs-on: ubuntu-latest
-
     container:
       image: returntocorp/semgrep
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -48,6 +47,6 @@ jobs:
         run: semgrep scan --config=.semgrep --sarif --output semgrep.sarif
 
       - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: semgrep.sarif
