@@ -54,7 +54,7 @@ jobs:
             --output osv-diff.sarif
         continue-on-error: true
 
-      # ✅ Sauvegarde du rapport différentiel
+      # ✅ Sauvegarde  du rapport différentiel
       - name: Save differential report
         uses: actions/upload-artifact@v4
         with:
