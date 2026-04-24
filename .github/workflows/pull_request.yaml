@@ -37,6 +37,7 @@ jobs:
       # ✅ Scan AVANT le PR (code baseline)
       - name: Run OSV Scanner - before PR
         uses: google/osv-scanner-action/osv-scanner-action@3d5827dbebf8a3f7ba681e730a8a1b116e8ebddd
+        with:
           scan-args: |-
             --format sarif
             --output osv-before.sarif
