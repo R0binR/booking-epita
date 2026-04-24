@@ -55,7 +55,7 @@ jobs:
         with:
           name: osv-differential-report
           path: osv-diff.sarif
-          retention-days: 30
+          retention-days: 29
 
   source-code-analysis:
     runs-on: ubuntu-latest
