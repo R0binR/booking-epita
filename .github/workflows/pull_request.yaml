@@ -1,0 +1,90 @@
+name: pull-request-security
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
+jobs:
+  dependencies-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Nécessaire pour accéder au commit baseline
+
+      # ✅ Scan APRÈS le PR (code actuel)
+      - name: Run OSV Scanner - after PR
+        uses: google/osv-scanner-action/osv-scanner-action@3d5827dbebf8a3f7ba681e730a8a1b116e8ebddd
+        with:
+          scan-args: |-
+            --format sarif
+            --output osv-after.sarif
+            ./
+        continue-on-error: true
+
+      # ✅ Retour au commit de base (avant PR)
+      - name: Checkout baseline commit
+        run: |
+          git checkout ${{ github.event.pull_request.base.sha }}
+
+      # ✅ Scan AVANT le PR (code baseline)
+      - name: Run OSV Scanner - before PR
+        uses: google/osv-scanner-action/osv-scanner-action@3d5827dbebf8a3f7ba681e730a8a1b116e8ebddd
+          scan-args: |-
+            --format sarif
+            --output osv-before.sarif
+            ./
+        continue-on-error: true
+
+      # ✅ Comparaison différentielle
+      - name: Compare OSV results
+        uses: google/osv-scanner-action/osv-reporter-action@3d5827dbebf8a3f7ba681e730a8a1b116e8ebddd
+        with:
+          scan-args: |-
+            --new-sarif osv-after.sarif
+            --old-sarif osv-before.sarif
+            --output osv-diff.sarif
+        continue-on-error: true
+
+      # ✅ Sauvegarde du rapport différentiel
+      - name: Save differential report
+        uses: actions/upload-artifact@v4
+        with:
+          name: osv-differential-report
+          path: osv-diff.sarif
+          retention-days: 30
+
+  source-code-analysis:
+    runs-on: ubuntu-latest
+    container:
+      image: returntocorp/semgrep
+    steps:
+      - name: Checkout PR code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Nécessaire pour l'analyse différentielle
+
+      # ✅ Analyse différentielle Semgrep (uniquement le nouveau code)
+      - name: Run Semgrep differential analysis
+        run: |
+          semgrep scan \
+            --config=.semgrep \
+            --sarif \
+            --output semgrep-diff.sarif \
+            --baseline-commit ${{ github.event.pull_request.base.sha }}
+        continue-on-error: true
+
+      # ✅ Sauvegarde du rapport différentiel
+      - name: Save Semgrep differential report
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-differential-report
+          path: semgrep-diff.sarif
+          retention-days: 30
