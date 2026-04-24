@@ -44,10 +44,9 @@ jobs:
       - name: Compare OSV results
         uses: google/osv-scanner-action/osv-reporter-action@3d5827dbebf8a3f7ba681e730a8a1b116e8ebddd
         with:
-          scan-args: |-
-            --new-sarif osv-after.sarif
-            --old-sarif osv-before.sarif
-            --output osv-diff.sarif
+          new-sarif: osv-after.sarif      # ✅ input direct
+          old-sarif: osv-before.sarif     # ✅ input direct
+          output: osv-diff.sarif          # ✅ input direct
         continue-on-error: true
 
       - name: Save differential report
